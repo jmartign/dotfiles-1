@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 set -e
 
 # install.sh
@@ -38,12 +38,7 @@ setup_sources() {
 
   # tlp: Advanced Linux Power Management
   # http://linrunner.de/en/tlp/docs/tlp-linux-advanced-power-management.html
-  deb http://repo.linrunner.de/debian sid main
-EOF
-
-  # add docker apt repo
-  cat <<-EOF > /etc/apt/sources.list.d/docker.list
-  deb https://apt.dockerproject.org/repo debian-jessie main
+  deb http://repo.linrunner.de/debian jessie main
 EOF
 
   # add docker gpg key
@@ -172,7 +167,13 @@ setup_sudo() {
 # and adds necessary items to boot params
 install_docker() {
 
+  # add docker apt repo
+  cat <<-EOF > /etc/apt/sources.list.d/docker.list
+  deb https://apt.dockerproject.org/repo debian-jessie main
+EOF
+
   # install docker
+  apt-get update
   apt-get install -y docker-engine
 
   # create docker group
@@ -223,7 +224,7 @@ install_graphics() {
     local pkgs="xorg xserver-xorg xserver-xorg-video-intel"
   fi
 
-  apt-get install -y "$pkgs" --no-install-recommends
+  apt-get install -y $pkgs --no-install-recommends
 }
 
 # install wifi drivers
@@ -240,7 +241,12 @@ install_wifi() {
 
     apt-get install -y "$pkg" --no-install-recommends
   else
-    update-iwlwifi
+    local pkg="iw firmware-iwlwifi"
+
+    apt-get install -y $pkg
+
+    modprobe -r iwlwifi
+    modprobe iwlwifi
   fi
 }
 
@@ -248,7 +254,7 @@ install_wifi() {
 install_wmapps() {
   local pkgs="feh i3 i3lock i3status scrot slim neovim"
 
-  apt-get install -y "$pkgs" --no-install-recommends
+  apt-get install -y $pkgs --no-install-recommends
 
   # Get i3 slim theme
   git clone https://github.com/naglis/slim-minimal.git /usr/share/slim/themes/slim-minimal
@@ -280,7 +286,7 @@ get_dotfiles() {
   cd "/home/$USERNAME"
 
   # install dotfiles from repo
-  git clone git@github.com:jacksoncage/dotfiles.git "/home/$USERNAME/dotfiles"
+  git clone https://github.com/jacksoncage/dotfiles.git "/home/$USERNAME/dotfiles"
   cd "/home/$USERNAME/dotfiles"
 
   # installs all the things
@@ -335,8 +341,6 @@ main() {
     get_dotfiles
   elif [[ $cmd == "golang" ]]; then
     install_golang "$2"
-  elif [[ $cmd == "git" ]]; then
-    install_git "$2"
   else
     usage
   fi
